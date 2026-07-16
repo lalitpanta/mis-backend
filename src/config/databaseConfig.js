@@ -2,12 +2,32 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 function getDatabaseConfig(overrides = {}) {
-  const chosenUrl =
-    process.env.EXTERNAL_DATABASE_URL ||
-    process.env.INTERNAL_DATABASE_URL ||
-    process.env.DATABASE_URL;
+  const candidateUrls = [
+    process.env.EXTERNAL_DATABASE_URL,
+    process.env.INTERNAL_DATABASE_URL,
+    process.env.DATABASE_URL,
+  ];
 
-  const parsedUrl = chosenUrl ? new URL(chosenUrl) : null;
+  const chosenUrl = candidateUrls.find(
+    (value) =>
+      typeof value === "string" &&
+      value.trim() !== "" &&
+      !value.includes("<") &&
+      !value.includes(">"),
+  );
+
+  let parsedUrl = null;
+  if (chosenUrl) {
+    try {
+      parsedUrl = new URL(chosenUrl);
+    } catch (err) {
+      console.warn(
+        "⚠️ Skipping invalid database URL in environment variables:",
+        chosenUrl,
+      );
+      parsedUrl = null;
+    }
+  }
 
   const config = {
     host:
