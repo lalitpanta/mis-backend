@@ -7,6 +7,7 @@ async function initializeCentralDatabase() {
   const client = await centralPool.connect();
 
   try {
+    await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
     console.log("🔄 Creating system_admin table if not exists...");
     // Create system_admin table
     await client.query(`
@@ -47,16 +48,28 @@ async function initializeCentralDatabase() {
 
     console.log("🔄 Adding columns to tenant table...");
     // Add columns safely
-    await client.query(`ALTER TABLE tenant ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`);
-    await client.query(`ALTER TABLE tenant ADD COLUMN IF NOT EXISTS modules JSONB DEFAULT '[]'::jsonb`);
+    await client.query(
+      `ALTER TABLE tenant ADD COLUMN IF NOT EXISTS slug VARCHAR(255)`,
+    );
+    await client.query(
+      `ALTER TABLE tenant ADD COLUMN IF NOT EXISTS modules JSONB DEFAULT '[]'::jsonb`,
+    );
     console.log("✅ Columns added");
 
     console.log("🔄 Creating indexes...");
     // Create indexes
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_system_admin_email ON system_admin(email)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_tenant_email ON tenant(email)`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_tenant_database_name ON tenant(database_name)`);
-    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_slug ON tenant(slug)`);
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_system_admin_email ON system_admin(email)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_tenant_email ON tenant(email)`,
+    );
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_tenant_database_name ON tenant(database_name)`,
+    );
+    await client.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_slug ON tenant(slug)`,
+    );
     console.log("✅ Indexes created");
 
     console.log("✅ Central database schema initialized successfully");

@@ -1,12 +1,15 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4, v5: uuidv5 } = require("uuid");
 const {
   centralPool,
   createTenantDatabase,
   initializeTenantDatabase,
   getTenantPool,
+  isSingleDatabase,
 } = require("../config/tenantDb");
+const { getDatabaseConfig } = require("../config/databaseConfig");
+const { initializeCentralDatabase } = require("../config/initCentralDb");
 
 const MODULE_LABELS = {
   dashboard: "Dashboard",
@@ -132,49 +135,95 @@ async function adminLogin(email, password) {
  */
 async function tenantLogin(tenantSlug, email, password) {
   const client = await centralPool.connect();
-
   try {
     const normalizedSlug = slugify(tenantSlug);
     if (!validateSlug(normalizedSlug)) {
       throw new Error("Invalid tenant name or slug");
     }
 
-    const result = await client.query(
-      "SELECT * FROM tenant WHERE slug = $1 AND is_active = TRUE;",
-      [normalizedSlug],
-    );
+    let tenant = null;
+    let tenantPool;
 
-    if (result.rows.length === 0) {
-      throw new Error("Invalid email or password");
-    }
+    try {
+      const result = await client.query(
+        "SELECT * FROM tenant WHERE slug = $1 AND is_active = TRUE;",
+        [normalizedSlug],
+      );
 
-    const tenant = result.rows[0];
-
-    // Verify that the email matches the tenant's email (not any user in tenant_users)
-    // This ensures only the tenant admin can login as tenant
-    if (email !== tenant.email) {
-      throw new Error("Invalid email or password");
-    }
-
-    const isPasswordValid = await comparePassword(
-      password,
-      tenant.password_hash,
-    );
-
-    if (!isPasswordValid) {
-      throw new Error("Invalid email or password");
-    }
-
-    let assignedModules = [];
-    if (Array.isArray(tenant.modules)) {
-      assignedModules = [...tenant.modules]; // Copy array
-    } else if (typeof tenant.modules === "string") {
-      try {
-        assignedModules = JSON.parse(tenant.modules);
-      } catch (e) {
-        assignedModules = [];
+      if (result.rows.length > 0) {
+        tenant = result.rows[0];
+      }
+    } catch (error) {
+      if (isSingleDatabase && error.code === "42P01") {
+        await initializeCentralDatabase();
+      } else {
+        throw error;
       }
     }
+
+    if (!tenant && isSingleDatabase) {
+    tenantPool = getTenantPool(null, getDatabaseConfig().database);
+    const adminResult = await tenantPool.query(
+      "SELECT * FROM tenant_users WHERE email = $1 AND role = 'admin' AND is_active = TRUE;",
+      [email],
+    );
+
+    if (adminResult.rows.length > 0) {
+      const defaultModules = JSON.stringify([
+        "dashboard",
+        "calendar",
+        "attendance",
+        "settings",
+        "result_portal",
+      ]);
+
+      const insertResult = await client.query(
+        `INSERT INTO tenant (id, name, slug, email, password_hash, database_name, modules, status, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', TRUE)
+         ON CONFLICT (slug) DO UPDATE SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, database_name = EXCLUDED.database_name, modules = EXCLUDED.modules, status = EXCLUDED.status, is_active = EXCLUDED.is_active
+         RETURNING *;`,
+        [
+          uuidv4(),
+          normalizedSlug,
+          normalizedSlug,
+          adminResult.rows[0].email,
+          adminResult.rows[0].password_hash,
+          getDatabaseConfig().database,
+          defaultModules,
+        ],
+      );
+
+      tenant = insertResult.rows[0];
+    }
+  }
+
+  if (!tenant) {
+    throw new Error("Invalid email or password");
+  }
+
+  if (email !== tenant.email) {
+    throw new Error("Invalid email or password");
+  }
+
+  const isPasswordValid = await comparePassword(
+    password,
+    tenant.password_hash,
+  );
+
+  if (!isPasswordValid) {
+    throw new Error("Invalid email or password");
+  }
+
+  let assignedModules = [];
+  if (Array.isArray(tenant.modules)) {
+    assignedModules = [...tenant.modules]; // Copy array
+  } else if (typeof tenant.modules === "string") {
+    try {
+      assignedModules = JSON.parse(tenant.modules);
+    } catch (e) {
+      assignedModules = [];
+    }
+  }
 
     // Ensure all default modules are included
     const defaultModules = [
@@ -598,26 +647,75 @@ async function deleteTenant(tenantId) {
  */
 async function staffLogin(tenantSlug, email, password) {
   const client = await centralPool.connect();
+  const normalizedSlug = slugify(tenantSlug);
+  if (!validateSlug(normalizedSlug)) {
+    throw new Error("Invalid tenant name or slug");
+  }
+
+  let tenant = null;
+  let tenantPool;
+  let tenantDbClient;
 
   try {
-    const normalizedSlug = slugify(tenantSlug);
-    if (!validateSlug(normalizedSlug)) {
-      throw new Error("Invalid tenant name or slug");
-    }
-
-    // Get tenant info
     const tenantResult = await client.query(
       "SELECT * FROM tenant WHERE slug = $1 AND is_active = TRUE;",
       [normalizedSlug],
     );
 
-    if (tenantResult.rows.length === 0) {
+    if (tenantResult.rows.length > 0) {
+      tenant = tenantResult.rows[0];
+    }
+  } catch (error) {
+    if (isSingleDatabase && error.code === "42P01") {
+      await initializeCentralDatabase();
+    } else {
+      throw error;
+    }
+  }
+
+  if (!tenant && isSingleDatabase) {
+    tenantPool = getTenantPool(null, getDatabaseConfig().database);
+    const userResult = await tenantPool.query(
+      "SELECT * FROM tenant_users WHERE email = $1 AND is_active = TRUE;",
+      [email],
+    );
+
+    if (userResult.rows.length === 0) {
       throw new Error("Invalid email or password");
     }
 
-    const tenant = tenantResult.rows[0];
-    const tenantPool = getTenantPool(tenant.id, tenant.database_name);
-    const tenantDbClient = await tenantPool.connect();
+    const defaultModules = JSON.stringify([
+      "dashboard",
+      "calendar",
+      "attendance",
+      "settings",
+    ]);
+
+    const insertResult = await client.query(
+      `INSERT INTO tenant (id, name, slug, email, password_hash, database_name, modules, status, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', TRUE)
+       ON CONFLICT (slug) DO UPDATE SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, database_name = EXCLUDED.database_name, modules = EXCLUDED.modules, status = EXCLUDED.status, is_active = EXCLUDED.is_active
+       RETURNING *;`,
+      [
+        uuidv4(),
+        normalizedSlug,
+        normalizedSlug,
+        userResult.rows[0].email,
+        userResult.rows[0].password_hash,
+        getDatabaseConfig().database,
+        defaultModules,
+      ],
+    );
+
+    tenant = insertResult.rows[0];
+  }
+
+  if (!tenant) {
+    throw new Error("Invalid email or password");
+  }
+
+  tenantPool = getTenantPool(tenant.id, tenant.database_name);
+  tenantDbClient = await tenantPool.connect();
 
     try {
       // Get user from tenant database

@@ -97,11 +97,23 @@ if (enableAutoMigrate) {
   process.env.DB_SSL = process.env.DB_SSL || "true";
 }
 
+const startAppWithCentralInit = async () => {
+  try {
+    await initializeCentralDatabase();
+  } catch (err) {
+    console.warn(
+      "⚠️ Central database initialization failed, continuing startup:",
+      err.message || err,
+    );
+  }
+  startApp();
+};
+
 if (!enableAutoMigrate) {
   console.log(
     "Auto-migration is disabled by default. Set ENABLE_AUTO_MIGRATE=true to enable it.",
   );
-  startApp();
+  startAppWithCentralInit();
 } else {
   console.log("Running DB migrations before starting server...");
   exec("npx db-migrate up", { cwd: migrationsCwd }, (err, stdout, stderr) => {
@@ -109,11 +121,11 @@ if (!enableAutoMigrate) {
       console.error("Migration error:", err);
       console.error(stderr);
       // still start the app even if migrations fail, to allow manual intervention
-      startApp();
+      startAppWithCentralInit();
       return;
     }
     console.log(stdout);
     console.log("Migrations completed. Starting server.");
-    startApp();
+    startAppWithCentralInit();
   });
 }
