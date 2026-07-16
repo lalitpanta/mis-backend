@@ -1,0 +1,704 @@
+{
+  "info": {
+    "_postman_id": "calendar-api-collection",
+    "name": "Calendar API Collection",
+    "description": "Complete Calendar Management API - Updated with correct URLs and validation-based request bodies",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Calendar API",
+      "description": "Calendar viewing endpoints for different date formats (AD/BS)",
+      "item": [
+        {
+          "name": "Get Month Calendar (Linear)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/month?year=2025&month=5&date_format=AD",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "month"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025",
+                  "description": "Year (e.g., 2025)"
+                },
+                {
+                  "key": "month",
+                  "value": "5",
+                  "description": "Month (1-12)"
+                },
+                {
+                  "key": "date_format",
+                  "value": "AD",
+                  "description": "Date format: AD or BS (default: AD)"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month in linear (flat list) format"
+          }
+        },
+        {
+          "name": "Get Month Calendar (By Weeks)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/month/weeks?year=2025&month=5&date_format=AD",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "month", "weeks"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "date_format",
+                  "value": "AD"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month organized by weeks"
+          }
+        },
+        {
+          "name": "Get BS Month Calendar (Linear)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/bs/month?year=2081&month=2",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "bs", "month"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2081",
+                  "description": "Year in BS"
+                },
+                {
+                  "key": "month",
+                  "value": "2",
+                  "description": "Month (1-12)"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month in Bikram Sambat date system (linear format)"
+          }
+        },
+        {
+          "name": "Get BS Month Calendar (By Weeks)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/bs/weeks?year=2081&month=2",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "bs", "weeks"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2081"
+                },
+                {
+                  "key": "month",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month in Bikram Sambat format (organized by weeks)"
+          }
+        },
+        {
+          "name": "Get AD Month Calendar (Linear)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/ad/month?year=2025&month=5",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "ad", "month"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month in Anno Domini date system (linear format)"
+          }
+        },
+        {
+          "name": "Get AD Month Calendar (By Weeks)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar/ad/weeks?year=2025&month=5",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar", "ad", "weeks"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Retrieves calendar for a specific month in Anno Domini format (organized by weeks)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Year API",
+      "description": "CRUD operations for managing academic/calendar years",
+      "item": [
+        {
+          "name": "Create Year (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year_label_AD\": \"2025-2026\",\n  \"year_label_BS\": \"2081-2082\",\n  \"start_date_AD\": \"2025-04-01\",\n  \"end_date_AD\": \"2026-03-31\",\n  \"start_date_BS\": \"2081-01-01\",\n  \"end_date_BS\": \"2082-12-30\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/year/uploadyear",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "year", "uploadyear"]
+            },
+            "description": "Creates a new year entry. Required: year_label_AD, year_label_BS, start_date_AD, end_date_AD, start_date_BS, end_date_BS"
+          }
+        },
+        {
+          "name": "Get All Years (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/year/getyear",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "year", "getyear"]
+            },
+            "description": "Retrieves all years from the system"
+          }
+        },
+        {
+          "name": "Get Year by ID (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/year/getyear/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "year", "getyear", "1"]
+            },
+            "description": "Retrieves a specific year by its ID"
+          }
+        },
+        {
+          "name": "Update Year (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year_label_AD\": \"2025-2026 Updated\",\n  \"year_label_BS\": \"2081-2082 Updated\",\n  \"start_date_AD\": \"2025-04-01\",\n  \"end_date_AD\": \"2026-03-31\",\n  \"start_date_BS\": \"2081-01-01\",\n  \"end_date_BS\": \"2082-12-30\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/year/updateyear/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "year", "updateyear", "1"]
+            },
+            "description": "Updates year entry with: year_label_AD, year_label_BS, start_date_AD, end_date_AD, start_date_BS, end_date_BS"
+          }
+        },
+        {
+          "name": "Delete Year (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/year/deleteyear/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "year", "deleteyear", "1"]
+            },
+            "description": "Deletes a year from the system"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Month Class Data API",
+      "description": "CRUD operations for managing academic month/class data",
+      "item": [
+        {
+          "name": "Create Month (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year_label\": \"2025-2026\",\n  \"month_name\": \"Baishakh\",\n  \"month_start_date_BS\": \"2081-01-01\",\n  \"month_end_date_BS\": \"2081-01-31\",\n  \"month_start_date_AD\": \"2025-04-14\",\n  \"month_end_date_AD\": \"2025-05-13\",\n  \"month_start_day_BS\": \"Shrawan\",\n  \"month_end_day_BS\": \"Asar\",\n  \"month_start_day_AD\": \"Monday\",\n  \"month_end_day_AD\": \"Tuesday\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/month/uploadmonth",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "month", "uploadmonth"]
+            },
+            "description": "Creates a new month data entry. All fields are required (based on validation schema)."
+          }
+        },
+        {
+          "name": "Get All Months (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/month/getmonth",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "month", "getmonth"]
+            },
+            "description": "Retrieves all month records from the system"
+          }
+        },
+        {
+          "name": "Get Month by ID (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/month/getmonth/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "month", "getmonth", "1"]
+            },
+            "description": "Retrieves a specific month record by its ID"
+          }
+        },
+        {
+          "name": "Update Month (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month_name\": \"Baishakh Updated\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/month/updatemonth/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "month", "updatemonth", "1"]
+            },
+            "description": "Updates an existing month record. Any field can be updated (all optional, min 1 required)"
+          }
+        },
+        {
+          "name": "Delete Month (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/month/deletemonth/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "month", "deletemonth", "1"]
+            },
+            "description": "Deletes a month record from the system"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Day Classification API",
+      "description": "CRUD operations for managing day classifications/types",
+      "item": [
+        {
+          "name": "Create Day Classification (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_type\": \"Public Holiday\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/day-classification/uploadday",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "day-classification", "uploadday"]
+            },
+            "description": "Creates a new day classification type. Required field: day_type (string)"
+          }
+        },
+        {
+          "name": "Get All Day Classifications (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/day-classification/getday",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "day-classification", "getday"]
+            },
+            "description": "Retrieves all day classification types from the system"
+          }
+        },
+        {
+          "name": "Get Day Classification by ID (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/day-classification/getday/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "day-classification", "getday", "1"]
+            },
+            "description": "Retrieves a specific day classification by its ID"
+          }
+        },
+        {
+          "name": "Update Day Classification (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_type\": \"National Holiday\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/day-classification/updateday/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "day-classification", "updateday", "1"]
+            },
+            "description": "Updates an existing day classification. Field: day_type (optional, min 1 required)"
+          }
+        },
+        {
+          "name": "Delete Day Classification (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/day-classification/deleteday/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "day-classification", "deleteday", "1"]
+            },
+            "description": "Deletes a day classification from the system"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Calendar Days API",
+      "description": "Endpoints for managing individual calendar days and assigning day types",
+      "item": [
+        {
+          "name": "Generate Calendar Days (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"month\": 5,\n  \"date_format\": \"AD\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/generate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "generate"]
+            },
+            "description": "Generates calendar days for a specific month"
+          }
+        },
+        {
+          "name": "Get Calendar Days for Month (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/month?year=2025&month=5&date_format=AD",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "month"],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2025"
+                },
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "date_format",
+                  "value": "AD"
+                }
+              ]
+            },
+            "description": "Retrieves all calendar days for a specific month with their day types"
+          }
+        },
+        {
+          "name": "Get Available Day Types (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/day-types/available",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "day-types", "available"]
+            },
+            "description": "Retrieves all available day types/classifications that can be assigned"
+          }
+        },
+        {
+          "name": "Manual Assign Day Types (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"month\": 5,\n  \"date_format\": \"AD\",\n  \"assignments\": [\n    {\n      \"day_number\": 1,\n      \"day_type_id\": 2\n    },\n    {\n      \"day_number\": 2,\n      \"day_type_id\": 3\n    },\n    {\n      \"day_number\": 10,\n      \"day_type_id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/manual-assign",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "manual-assign"]
+            },
+            "description": "Manually assign day types to calendar days by day number - EASY FOR USERS!"
+          }
+        },
+        {
+          "name": "Assign Day Type to Specific Day (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day_type_id\": 1\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/15/assign-type",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "15", "assign-type"]
+            },
+            "description": "Assigns a day type to a specific calendar day record"
+          }
+        },
+        {
+          "name": "Bulk Assign Day Types (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"calendar_day_ids\": [1, 2, 3, 4, 5],\n  \"day_type_id\": 2\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/bulk-assign",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "bulk-assign"]
+            },
+            "description": "Assigns the same day type to multiple calendar days"
+          }
+        },
+        {
+          "name": "Assign Day Type by Weekday (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"year\": 2025,\n  \"month\": 5,\n  \"date_format\": \"AD\",\n  \"weekday\": 5,\n  \"day_type_id\": 3\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/assign-by-weekday",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "assign-by-weekday"]
+            },
+            "description": "Assigns a day type to all days with a specific weekday in a month (e.g., all Fridays)"
+          }
+        },
+        {
+          "name": "Get Specific Calendar Day (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/15",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "15"]
+            },
+            "description": "Retrieves details of a specific calendar day"
+          }
+        },
+        {
+          "name": "Delete Calendar Day (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/v1/calendar-days/15",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["v1", "calendar-days", "15"]
+            },
+            "description": "Deletes a calendar day record"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string"
+    }
+  ]
+}

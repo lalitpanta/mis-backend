@@ -1,0 +1,41 @@
+{
+  "name": "school-management-backend",
+  "version": "1.0.0",
+  "description": "Multi-tenant school management system backend",
+  "main": "src/server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server/server.js",
+    "dev": "nodemon src/server/server.js",
+    "seed": "node seedDb.js",
+    "migrate": "npx db-migrate up",
+    "migrate:down": "npx db-migrate down",
+    "update-tenant-schemas": "node updateTenantSchemas.js",
+    "fix-tenant-modules": "node fixTenantModules.js"
+  },
+  "keywords": [
+    "school",
+    "management",
+    "multi-tenant"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.16.1",
+    "bcrypt": "^5.0.1",
+    "cors": "^2.8.5",
+    "db-migrate-pg": "^1.5.2",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.10",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.8.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
