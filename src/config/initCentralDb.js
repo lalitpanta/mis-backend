@@ -7,7 +7,6 @@ async function initializeCentralDatabase() {
   const client = await centralPool.connect();
 
   try {
-    await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto";');
     console.log("🔄 Creating system_admin table if not exists...");
     // Create system_admin table
     await client.query(`

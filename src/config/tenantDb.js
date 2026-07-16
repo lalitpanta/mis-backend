@@ -110,6 +110,26 @@ async function initializeTenantDatabase(tenantId, databaseName) {
     // Create UUID extension
     await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
 
+    // Tenant metadata table for tenant-specific login and metadata storage
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tenant (
+        id UUID PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        database_name VARCHAR(255) UNIQUE NOT NULL,
+        modules JSONB DEFAULT '[]'::jsonb,
+        contact_person VARCHAR(255),
+        phone VARCHAR(20),
+        address TEXT,
+        status VARCHAR(50) DEFAULT 'active',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create tables for the tenant
     await client.query(`
       -- Tenant Users table
@@ -685,5 +705,4 @@ module.exports = {
   getTenantPool,
   createTenantDatabase,
   initializeTenantDatabase,
-  isSingleDatabase,
 };
