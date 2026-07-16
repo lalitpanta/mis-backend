@@ -2,9 +2,12 @@ const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 function getDatabaseConfig(overrides = {}) {
-  const parsedUrl = process.env.DATABASE_URL
-    ? new URL(process.env.DATABASE_URL)
-    : null;
+  const chosenUrl =
+    process.env.INTERNAL_DATABASE_URL ||
+    process.env.EXTERNAL_DATABASE_URL ||
+    process.env.DATABASE_URL;
+
+  const parsedUrl = chosenUrl ? new URL(chosenUrl) : null;
 
   const config = {
     host:
