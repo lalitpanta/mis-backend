@@ -1,6 +1,11 @@
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
-const { centralPool, isSingleDatabase, getTenantPool, sharedDatabaseName } = require("./tenantDb");
+const {
+  centralPool,
+  isSingleDatabase,
+  getTenantPool,
+  sharedDatabaseName,
+} = require("./tenantDb");
 
 function slugify(value) {
   return String(value || "")
@@ -101,8 +106,7 @@ async function ensureDefaultSingleTenant() {
     process.env.DEFAULT_TENANT_SLUG || tenantName || "single-school",
   );
   const tenantEmail = process.env.DEFAULT_TENANT_EMAIL || "tenant@school.local";
-  const tenantPassword =
-    process.env.DEFAULT_TENANT_PASSWORD || "Tenant@2026";
+  const tenantPassword = process.env.DEFAULT_TENANT_PASSWORD || "Tenant@2026";
   const tenantDatabaseName =
     process.env.DEFAULT_TENANT_DB_NAME || sharedDatabaseName;
 
@@ -203,7 +207,9 @@ async function ensureDefaultSingleTenant() {
       }
     }
 
-    console.log(`🔐 Default tenant login ready: ${tenantEmail} / ${tenantPassword}`);
+    console.log(
+      `🔐 Default tenant login ready: ${tenantEmail} / ${tenantPassword}`,
+    );
   } finally {
     client.release();
   }

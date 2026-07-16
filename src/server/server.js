@@ -13,18 +13,39 @@ const StartServer = require("./startServer");
 const routes = require("../routing/index");
 
 // ── CORS Middleware ────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "http://localhost:5001",
+  "https://mis-frontend-g6g3.onrender.com",
+  "https://mis-frontend-g6g3.onrender.com/",
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:3000",
-      "http://localhost:5000",
-      "http://localhost:5001",
-    ],
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Tenant-ID"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Tenant-ID",
+      "X-Requested-With",
+    ],
     credentials: true,
     optionsSuccessStatus: 200,
   }),
@@ -128,15 +149,19 @@ if (!enableAutoMigrate) {
   });
 } else {
   console.log("Running DB migrations before starting server...");
-  exec("npx db-migrate up", { cwd: migrationsCwd }, async (err, stdout, stderr) => {
-    if (err) {
-      console.error("Migration error:", err);
-      console.error(stderr);
-      // still start the app even if migrations fail, to allow manual intervention
-    }
-    console.log(stdout);
-    console.log("Migrations completed. Starting server.");
-    await runStartupBootstrap();
-    startApp();
-  });
+  exec(
+    "npx db-migrate up",
+    { cwd: migrationsCwd },
+    async (err, stdout, stderr) => {
+      if (err) {
+        console.error("Migration error:", err);
+        console.error(stderr);
+        // still start the app even if migrations fail, to allow manual intervention
+      }
+      console.log(stdout);
+      console.log("Migrations completed. Starting server.");
+      await runStartupBootstrap();
+      startApp();
+    },
+  );
 }
