@@ -705,4 +705,6 @@ module.exports = {
   getTenantPool,
   createTenantDatabase,
   initializeTenantDatabase,
+  isSingleDatabase,
+  sharedDatabaseName,
 };

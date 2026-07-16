@@ -39,6 +39,23 @@ async function patchAllTenantSchemas() {
         try {
           // Add missing tables to existing tenants
           await tenantClient.query(`
+            CREATE TABLE IF NOT EXISTS tenant (
+              id UUID PRIMARY KEY,
+              name VARCHAR(255) NOT NULL,
+              slug VARCHAR(255) UNIQUE NOT NULL,
+              email VARCHAR(255) UNIQUE NOT NULL,
+              password_hash VARCHAR(255) NOT NULL,
+              database_name VARCHAR(255) UNIQUE NOT NULL,
+              modules JSONB DEFAULT '[]'::jsonb,
+              contact_person VARCHAR(255),
+              phone VARCHAR(20),
+              address TEXT,
+              status VARCHAR(50) DEFAULT 'active',
+              is_active BOOLEAN DEFAULT TRUE,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS rooms (
               id SERIAL PRIMARY KEY,
               room_number VARCHAR(50) NOT NULL,

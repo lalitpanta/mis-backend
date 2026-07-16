@@ -6,6 +6,8 @@ const {
   createTenantDatabase,
   initializeTenantDatabase,
   getTenantPool,
+  isSingleDatabase,
+  sharedDatabaseName,
 } = require("../config/tenantDb");
 
 const MODULE_LABELS = {
@@ -42,6 +44,34 @@ function normalizeModules(modules) {
         .filter(Boolean),
     ),
   ];
+}
+
+const DEFAULT_TENANT_MODULES = [
+  "dashboard",
+  "calendar",
+  "attendance",
+  "settings",
+  "result_portal",
+];
+
+async function getEnabledModulesFromTenantDb(
+  tenantDbClient,
+  currentModules = [],
+) {
+  try {
+    const modulesResult = await tenantDbClient.query(
+      "SELECT module_key FROM tenant_modules WHERE enabled = TRUE ORDER BY module_key;",
+    );
+    const dbModules = modulesResult.rows.map((row) => row.module_key);
+    return [
+      ...new Set([...DEFAULT_TENANT_MODULES, ...currentModules, ...dbModules]),
+    ];
+  } catch (err) {
+    if (err.code === "42P01") {
+      return [...new Set([...DEFAULT_TENANT_MODULES, ...currentModules])];
+    }
+    throw err;
+  }
 }
 
 /**
@@ -144,25 +174,55 @@ async function tenantLogin(tenantSlug, email, password) {
       [normalizedSlug],
     );
 
-    if (result.rows.length === 0) {
+    let tenant = result.rows.length > 0 ? result.rows[0] : null;
+    let fallbackTenantUser = null;
+
+    if (!tenant && isSingleDatabase) {
+      const tenantPool = getTenantPool(normalizedSlug, sharedDatabaseName);
+      const tenantDbClient = await tenantPool.connect();
+      try {
+        const userResult = await tenantDbClient.query(
+          "SELECT * FROM tenant_users WHERE email = $1 AND is_active = TRUE LIMIT 1;",
+          [email],
+        );
+
+        if (userResult.rows.length === 0) {
+          throw new Error("Invalid email or password");
+        }
+
+        fallbackTenantUser = userResult.rows[0];
+        const isPasswordValid = await comparePassword(
+          password,
+          fallbackTenantUser.password_hash,
+        );
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid email or password");
+        }
+      } finally {
+        tenantDbClient.release();
+      }
+    }
+
+    if (!tenant && !fallbackTenantUser) {
       throw new Error("Invalid email or password");
     }
 
-    const tenant = result.rows[0];
+    if (tenant) {
+      // Verify that the email matches the tenant's email (not any user in tenant_users)
+      // This ensures only the tenant admin can login as tenant
+      if (email !== tenant.email) {
+        throw new Error("Invalid email or password");
+      }
 
-    // Verify that the email matches the tenant's email (not any user in tenant_users)
-    // This ensures only the tenant admin can login as tenant
-    if (email !== tenant.email) {
-      throw new Error("Invalid email or password");
-    }
+      const isPasswordValid = await comparePassword(
+        password,
+        tenant.password_hash,
+      );
 
-    const isPasswordValid = await comparePassword(
-      password,
-      tenant.password_hash,
-    );
-
-    if (!isPasswordValid) {
-      throw new Error("Invalid email or password");
+      if (!isPasswordValid) {
+        throw new Error("Invalid email or password");
+      }
     }
 
     let assignedModules = [];
@@ -189,17 +249,17 @@ async function tenantLogin(tenantSlug, email, password) {
     );
 
     if (assignedModules.length === 0 || !hasAllModules) {
-      // Get enabled modules from tenant_modules table
-      const tenantPool = getTenantPool(tenant.id, tenant.database_name);
+      const tenantDbName = tenant ? tenant.database_name : sharedDatabaseName;
+      const tenantPool = getTenantPool(
+        tenant ? tenant.id : normalizedSlug,
+        tenantDbName,
+      );
       const tenantDbClient = await tenantPool.connect();
       try {
-        const modulesResult = await tenantDbClient.query(
-          "SELECT module_key FROM tenant_modules WHERE enabled = TRUE ORDER BY module_key;",
+        assignedModules = await getEnabledModulesFromTenantDb(
+          tenantDbClient,
+          [],
         );
-        const dbModules = modulesResult.rows.map((row) => row.module_key);
-
-        // Merge with defaults to ensure all are present
-        assignedModules = [...new Set([...defaultModules, ...dbModules])];
 
         // Ensure all modules exist in tenant_modules table
         for (const moduleKey of assignedModules) {
@@ -212,28 +272,38 @@ async function tenantLogin(tenantSlug, email, password) {
           );
         }
 
-        // Update tenant record if modules changed
-        if (
-          JSON.stringify(assignedModules.sort()) !==
-          JSON.stringify((tenant.modules || []).sort())
-        ) {
-          await client.query("UPDATE tenant SET modules = $1 WHERE id = $2;", [
-            JSON.stringify(assignedModules),
-            tenant.id,
-          ]);
+        if (tenant) {
+          // Update tenant record if modules changed
+          if (
+            JSON.stringify(assignedModules.sort()) !==
+            JSON.stringify((tenant.modules || []).sort())
+          ) {
+            await client.query(
+              "UPDATE tenant SET modules = $1 WHERE id = $2;",
+              [JSON.stringify(assignedModules), tenant.id],
+            );
+          }
         }
       } finally {
         tenantDbClient.release();
       }
     }
 
+    const tenantId = tenant ? tenant.id : fallbackTenantUser.id;
+    const tenantEmail = tenant ? tenant.email : email;
+    const tenantName = tenant ? tenant.name : normalizedSlug;
+    const tenantSlugValue = tenant ? tenant.slug : normalizedSlug;
+    const tenantDatabaseName = tenant
+      ? tenant.database_name
+      : sharedDatabaseName;
+
     const token = generateToken(
       {
-        id: tenant.id,
-        email: tenant.email,
-        name: tenant.name,
-        databaseName: tenant.database_name,
-        slug: tenant.slug,
+        id: tenantId,
+        email: tenantEmail,
+        name: tenantName,
+        databaseName: tenantDatabaseName,
+        slug: tenantSlugValue,
         modules: assignedModules,
         role: "tenant",
         type: "tenant",
@@ -244,11 +314,11 @@ async function tenantLogin(tenantSlug, email, password) {
     return {
       token,
       tenant: {
-        id: tenant.id,
-        email: tenant.email,
-        name: tenant.name,
-        databaseName: tenant.database_name,
-        slug: tenant.slug,
+        id: tenantId,
+        email: tenantEmail,
+        name: tenantName,
+        databaseName: tenantDatabaseName,
+        slug: tenantSlugValue,
         modules: assignedModules,
       },
     };
@@ -611,11 +681,20 @@ async function staffLogin(tenantSlug, email, password) {
       [normalizedSlug],
     );
 
-    if (tenantResult.rows.length === 0) {
+    let tenant = null;
+    if (tenantResult.rows.length > 0) {
+      tenant = tenantResult.rows[0];
+    } else if (isSingleDatabase) {
+      tenant = {
+        id: normalizedSlug,
+        slug: normalizedSlug,
+        database_name: sharedDatabaseName,
+        modules: DEFAULT_TENANT_MODULES,
+      };
+    } else {
       throw new Error("Invalid email or password");
     }
 
-    const tenant = tenantResult.rows[0];
     const tenantPool = getTenantPool(tenant.id, tenant.database_name);
     const tenantDbClient = await tenantPool.connect();
 
@@ -677,14 +756,10 @@ async function staffLogin(tenantSlug, email, password) {
       );
 
       if (assignedModules.length === 0 || !hasAllModules) {
-        // Get enabled modules from tenant_modules table
-        const modulesResult = await tenantDbClient.query(
-          "SELECT module_key FROM tenant_modules WHERE enabled = TRUE ORDER BY module_key;",
+        assignedModules = await getEnabledModulesFromTenantDb(
+          tenantDbClient,
+          [],
         );
-        const dbModules = modulesResult.rows.map((row) => row.module_key);
-
-        // Merge with defaults to ensure all are present
-        assignedModules = [...new Set([...defaultModules, ...dbModules])];
 
         // Ensure all modules exist in tenant_modules table
         for (const moduleKey of assignedModules) {
@@ -697,15 +772,16 @@ async function staffLogin(tenantSlug, email, password) {
           );
         }
 
-        // Update tenant record if modules changed
-        if (
-          JSON.stringify(assignedModules.sort()) !==
-          JSON.stringify((tenant.modules || []).sort())
-        ) {
-          await client.query("UPDATE tenant SET modules = $1 WHERE id = $2;", [
-            JSON.stringify(assignedModules),
-            tenant.id,
-          ]);
+        if (tenant && tenant.modules) {
+          if (
+            JSON.stringify(assignedModules.sort()) !==
+            JSON.stringify((tenant.modules || []).sort())
+          ) {
+            await client.query(
+              "UPDATE tenant SET modules = $1 WHERE id = $2;",
+              [JSON.stringify(assignedModules), tenant.id],
+            );
+          }
         }
       }
 
