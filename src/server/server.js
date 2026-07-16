@@ -62,7 +62,14 @@ app.use((req, res) => {
 // Run DB migrations automatically on startup unless disabled
 const { exec } = require("child_process");
 const PORT = Number(process.env.PORT || 5000);
-const host = process.env.HOST || "0.0.0.0";
+const resolveListenHost = () => {
+  if (process.env.NODE_ENV === "production" || !process.env.HOST) {
+    return "0.0.0.0";
+  }
+
+  return process.env.HOST;
+};
+const host = resolveListenHost();
 const migrationsCwd = path.resolve(__dirname, "..", "..");
 
 if (PORT === 5432) {
