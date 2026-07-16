@@ -65,6 +65,12 @@ const PORT = Number(process.env.PORT || 5000);
 const host = process.env.HOST || "0.0.0.0";
 const migrationsCwd = path.resolve(__dirname, "..", "..");
 
+if (PORT === 5432) {
+  console.warn(
+    "⚠️ Render service is configured to use port 5432. This is the PostgreSQL default port. Remove PORT=5432 from Render env vars and let Render assign the service port automatically.",
+  );
+}
+
 const startApp = () => {
   app.listen(PORT, host, () => {
     console.log(`
