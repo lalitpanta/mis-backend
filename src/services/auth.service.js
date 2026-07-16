@@ -14,8 +14,13 @@ const MODULE_LABELS = {
   dashboard: "Dashboard",
   calendar: "Calendar",
   attendance: "Attendance",
+  teacher: "Teachers",
+  student: "Students",
+  employee: "Employees",
   settings: "Settings",
+  results: "Results",
   result_portal: "Result Portal",
+  daily_reports: "Daily Reports",
 };
 
 function slugify(value) {
@@ -31,16 +36,43 @@ function validateSlug(slug) {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 }
 
+function normalizeModuleKey(moduleKey) {
+  const normalized = String(moduleKey || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_");
+
+  const aliases = {
+    teachers: "teacher",
+    teacher: "teacher",
+    students: "student",
+    student: "student",
+    employees: "employee",
+    employee: "employee",
+    results: "results",
+    result: "results",
+    "result-management": "results",
+    result_management: "results",
+    "daily-report": "daily_reports",
+    "daily-reports": "daily_reports",
+    daily_reports: "daily_reports",
+    classroom: "settings",
+    classrooms: "settings",
+    section: "settings",
+    sections: "settings",
+    room: "settings",
+    rooms: "settings",
+  };
+
+  return aliases[normalized] || normalized;
+}
+
 function normalizeModules(modules) {
   if (!Array.isArray(modules)) return [];
   return [
     ...new Set(
       modules
-        .map((m) =>
-          String(m || "")
-            .toLowerCase()
-            .trim(),
-        )
+        .map((m) => normalizeModuleKey(m))
         .filter(Boolean),
     ),
   ];
@@ -50,8 +82,13 @@ const DEFAULT_TENANT_MODULES = [
   "dashboard",
   "calendar",
   "attendance",
+  "teacher",
+  "student",
+  "employee",
   "settings",
+  "results",
   "result_portal",
+  "daily_reports",
 ];
 
 async function getEnabledModulesFromTenantDb(
@@ -227,10 +264,10 @@ async function tenantLogin(tenantSlug, email, password) {
 
     let assignedModules = [];
     if (Array.isArray(tenant.modules)) {
-      assignedModules = [...tenant.modules]; // Copy array
+      assignedModules = normalizeModules(tenant.modules);
     } else if (typeof tenant.modules === "string") {
       try {
-        assignedModules = JSON.parse(tenant.modules);
+        assignedModules = normalizeModules(JSON.parse(tenant.modules));
       } catch (e) {
         assignedModules = [];
       }
@@ -241,8 +278,13 @@ async function tenantLogin(tenantSlug, email, password) {
       "dashboard",
       "calendar",
       "attendance",
+      "teacher",
+      "student",
+      "employee",
       "settings",
+      "results",
       "result_portal",
+      "daily_reports",
     ];
     const hasAllModules = defaultModules.every((m) =>
       assignedModules.includes(m),
@@ -355,8 +397,13 @@ async function createTenant(
       "dashboard",
       "calendar",
       "attendance",
+      "teacher",
+      "student",
+      "employee",
       "settings",
+      "results",
       "result_portal",
+      "daily_reports",
     ];
     const allModules = [...new Set([...defaultModules, ...normalizedModules])];
 
@@ -546,8 +593,13 @@ async function updateTenant(tenantId, updates = {}) {
         "dashboard",
         "calendar",
         "attendance",
+        "teacher",
+        "student",
+        "employee",
         "settings",
+        "results",
         "result_portal",
+        "daily_reports",
       ];
       normalizedUpdates.modules = JSON.stringify([
         ...new Set([...defaultModules, ...normalizedModules]),
@@ -735,10 +787,10 @@ async function staffLogin(tenantSlug, email, password) {
       // Get tenant modules
       let assignedModules = [];
       if (Array.isArray(tenant.modules)) {
-        assignedModules = [...tenant.modules]; // Copy array
+        assignedModules = normalizeModules(tenant.modules);
       } else if (typeof tenant.modules === "string") {
         try {
-          assignedModules = JSON.parse(tenant.modules);
+          assignedModules = normalizeModules(JSON.parse(tenant.modules));
         } catch (e) {
           assignedModules = [];
         }
@@ -749,7 +801,13 @@ async function staffLogin(tenantSlug, email, password) {
         "dashboard",
         "calendar",
         "attendance",
+        "teacher",
+        "student",
+        "employee",
         "settings",
+        "results",
+        "result_portal",
+        "daily_reports",
       ];
       const hasAllModules = defaultModules.every((m) =>
         assignedModules.includes(m),

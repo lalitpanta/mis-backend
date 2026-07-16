@@ -134,8 +134,13 @@ async function ensureDefaultSingleTenant() {
             "dashboard",
             "calendar",
             "attendance",
+            "teacher",
+            "student",
+            "employee",
             "settings",
+            "results",
             "result_portal",
+            "daily_reports",
           ]),
           "active",
           true,
@@ -191,8 +196,13 @@ async function ensureDefaultSingleTenant() {
           dashboard: "Dashboard",
           calendar: "Calendar",
           attendance: "Attendance",
+          teacher: "Teachers",
+          student: "Students",
+          employee: "Employees",
           settings: "Settings",
+          results: "Results",
           result_portal: "Result Portal",
+          daily_reports: "Daily Reports",
         };
         for (const moduleKey of Object.keys(moduleLabels)) {
           await tenantClient.query(
