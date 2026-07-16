@@ -1,4 +1,14 @@
-const { centralPool } = require("./tenantDb");
+const bcrypt = require("bcrypt");
+const { v4: uuidv4 } = require("uuid");
+const { centralPool, isSingleDatabase, getTenantPool, sharedDatabaseName } = require("./tenantDb");
+
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
 
 /**
  * Initialize central database with admin and tenant metadata tables
@@ -85,6 +95,121 @@ async function initializeCentralDatabase() {
   }
 }
 
+async function ensureDefaultSingleTenant() {
+  const tenantName = process.env.DEFAULT_TENANT_NAME || "Single School";
+  const tenantSlug = slugify(
+    process.env.DEFAULT_TENANT_SLUG || tenantName || "single-school",
+  );
+  const tenantEmail = process.env.DEFAULT_TENANT_EMAIL || "tenant@school.local";
+  const tenantPassword =
+    process.env.DEFAULT_TENANT_PASSWORD || "Tenant@2026";
+  const tenantDatabaseName =
+    process.env.DEFAULT_TENANT_DB_NAME || sharedDatabaseName;
+
+  const client = await centralPool.connect();
+  try {
+    const existingTenant = await client.query(
+      "SELECT id, slug, email, database_name FROM tenant WHERE slug = $1 OR email = $2 LIMIT 1;",
+      [tenantSlug, tenantEmail],
+    );
+
+    let tenant = existingTenant.rows[0];
+    if (!tenant) {
+      const passwordHash = await bcrypt.hash(tenantPassword, 10);
+      const insertResult = await client.query(
+        `INSERT INTO tenant (name, slug, email, password_hash, database_name, modules, status, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, slug, email, database_name;`,
+        [
+          tenantName,
+          tenantSlug,
+          tenantEmail,
+          passwordHash,
+          tenantDatabaseName,
+          JSON.stringify([
+            "dashboard",
+            "calendar",
+            "attendance",
+            "settings",
+            "result_portal",
+          ]),
+          "active",
+          true,
+        ],
+      );
+      tenant = insertResult.rows[0];
+      console.log(`✅ Default tenant created: ${tenantName} (${tenantEmail})`);
+    } else {
+      console.log(`ℹ️ Default tenant already exists: ${tenant.email}`);
+    }
+
+    if (isSingleDatabase) {
+      const tenantPool = getTenantPool(tenant.id, tenantDatabaseName);
+      const tenantClient = await tenantPool.connect();
+      try {
+        await tenantClient.query(`
+          CREATE TABLE IF NOT EXISTS tenant_users (
+            id UUID PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            role VARCHAR(50) DEFAULT 'admin',
+            name VARCHAR(255),
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        await tenantClient.query(`
+          CREATE TABLE IF NOT EXISTS tenant_modules (
+            id SERIAL PRIMARY KEY,
+            module_key VARCHAR(100) UNIQUE NOT NULL,
+            label VARCHAR(255) NOT NULL,
+            enabled BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        const passwordHash = await bcrypt.hash(tenantPassword, 10);
+        await tenantClient.query(
+          `INSERT INTO tenant_users (id, email, name, password_hash, role, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (email) DO UPDATE SET
+             password_hash = EXCLUDED.password_hash,
+             name = EXCLUDED.name,
+             role = EXCLUDED.role,
+             is_active = TRUE;`,
+          [uuidv4(), tenantEmail, tenantName, passwordHash, "admin", true],
+        );
+
+        const moduleLabels = {
+          dashboard: "Dashboard",
+          calendar: "Calendar",
+          attendance: "Attendance",
+          settings: "Settings",
+          result_portal: "Result Portal",
+        };
+        for (const moduleKey of Object.keys(moduleLabels)) {
+          await tenantClient.query(
+            `INSERT INTO tenant_modules (module_key, label, enabled)
+             VALUES ($1, $2, TRUE)
+             ON CONFLICT (module_key) DO UPDATE SET enabled = TRUE;`,
+            [moduleKey, moduleLabels[moduleKey]],
+          );
+        }
+      } finally {
+        tenantClient.release();
+      }
+    }
+
+    console.log(`🔐 Default tenant login ready: ${tenantEmail} / ${tenantPassword}`);
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   initializeCentralDatabase,
+  ensureDefaultSingleTenant,
 };

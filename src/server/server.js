@@ -2,8 +2,12 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { initializeCentralDatabase } = require("../config/initCentralDb");
+const {
+  initializeCentralDatabase,
+  ensureDefaultSingleTenant,
+} = require("../config/initCentralDb");
 const { getDatabaseConfig } = require("../config/databaseConfig");
+const { waitForCentralDatabaseConnection } = require("../config/tenantDb");
 const app = express();
 const StartServer = require("./startServer");
 const routes = require("../routing/index");
@@ -90,6 +94,17 @@ const startApp = () => {
   });
 };
 
+const runStartupBootstrap = async () => {
+  try {
+    await waitForCentralDatabaseConnection();
+    await initializeCentralDatabase();
+    await ensureDefaultSingleTenant();
+    console.log("✅ Single-school bootstrap completed");
+  } catch (error) {
+    console.error("⚠️ Startup bootstrap warning:", error.message);
+  }
+};
+
 const enableAutoMigrate =
   process.env.ENABLE_AUTO_MIGRATE &&
   process.env.ENABLE_AUTO_MIGRATE.toLowerCase() === "true";
@@ -108,19 +123,20 @@ if (!enableAutoMigrate) {
   console.log(
     "Auto-migration is disabled by default. Set ENABLE_AUTO_MIGRATE=true to enable it.",
   );
-  startApp();
+  runStartupBootstrap().finally(() => {
+    startApp();
+  });
 } else {
   console.log("Running DB migrations before starting server...");
-  exec("npx db-migrate up", { cwd: migrationsCwd }, (err, stdout, stderr) => {
+  exec("npx db-migrate up", { cwd: migrationsCwd }, async (err, stdout, stderr) => {
     if (err) {
       console.error("Migration error:", err);
       console.error(stderr);
       // still start the app even if migrations fail, to allow manual intervention
-      startApp();
-      return;
     }
     console.log(stdout);
     console.log("Migrations completed. Starting server.");
+    await runStartupBootstrap();
     startApp();
   });
 }

@@ -17,15 +17,28 @@ const centralPool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// Test central connection on startup
-centralPool.connect((err, client, release) => {
-  if (err) {
-    console.error("❌ Central database connection failed:", err.message);
-    process.exit(1);
+async function waitForCentralDatabaseConnection() {
+  const maxAttempts = 10;
+  const delayMs = 2000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const client = await centralPool.connect();
+      client.release();
+      console.log("✅ Central PostgreSQL database connected successfully");
+      return;
+    } catch (err) {
+      console.error(
+        `❌ Central database connection failed (attempt ${attempt}/${maxAttempts}):`,
+        err.message,
+      );
+      if (attempt === maxAttempts) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
-  release();
-  console.log("✅ Central PostgreSQL database connected successfully");
-});
+}
 
 // Tenant-specific pools cache
 const tenantPools = {};
@@ -707,4 +720,5 @@ module.exports = {
   initializeTenantDatabase,
   isSingleDatabase,
   sharedDatabaseName,
+  waitForCentralDatabaseConnection,
 };
